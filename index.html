@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora de Importación y Precio Final</title>
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; padding: 16px; background: #0f172a; color: #f8fafc; }
+    .container { max-width: 720px; margin: 0 auto; background: #1e293b; padding: 20px; border-radius: 14px; box-shadow: 0 10px 25px rgba(0,0,0,.35); }
+    h1 { margin: 0 0 6px; font-size: 1.35rem; color: #facc15; }
+    p.sub { margin: 0 0 18px; color: #cbd5e1; font-size: 0.9rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    label { display: block; font-size: 0.82rem; color: #e2e8f0; margin-bottom: 5px; font-weight: 600; }
+    input, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 0.95rem; }
+    select:focus, input:focus { outline: none; border-color: #facc15; }
+    .section-title { margin: 18px 0 10px; font-size: 0.98rem; font-weight: 700; color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 5px; }
+    .alerta-rubro { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: #0f172a; border-left: 4px solid #facc15; font-size: 0.84rem; color: #e2e8f0; line-height: 1.4; }
+    button { margin-top: 18px; width: 100%; padding: 13px; border: none; border-radius: 10px; background: #facc15; color: #0f172a; font-weight: 800; font-size: 1rem; cursor: pointer; }
+    button:hover { background: #eab308; }
+    .results { margin-top: 20px; background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; }
+    .row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #1e293b; font-size: 0.92rem; gap: 10px; }
+    .row:last-child { border-bottom: none; }
+    .highlight { color: #facc15; font-weight: 800; font-size: 1.08rem; }
+    .ok { color: #4ade80; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Calculadora de Importación y Precio Final</h1>
+    <p class="sub">Selecciona el tipo de producto para cargar los impuestos habituales de aduana en Venezuela.</p>
+
+    <div class="section-title">1. Tipo de Mercancía y Modalidad</div>
+    <div>
+      <label>Categoría del producto a importar</label>
+      <select id="categoriaProducto" onchange="aplicarRubro()">
+        <option value="casillero">Casillero Puerta a Puerta (Todo incluido en el flete)</option>
+        <option value="textil" selected>Textiles, Ropa y Lencería (Carga Formal - 20% Arancel)</option>
+        <option value="calzado">Calzado y Marroquinería (Carga Formal - 20% Arancel)</option>
+        <option value="electronica">Electrónica, Celulares y Accesorios (Carga Formal - 15% Arancel)</option>
+        <option value="relojes">Relojes, Smartwatches y Bisutería (Carga Formal - 15% Arancel)</option>
+        <option value="juguetes">Juguetes, Hogar y Plásticos (Carga Formal - 15% Arancel)</option>
+        <option value="cosmeticos">Cosméticos, Perfumes e Higiene (Carga Formal - 20% Arancel)</option>
+        <option value="repuestos">Repuestos Automotrices y Ferretería (Carga Formal - 10% Arancel)</option>
+        <option value="maquinaria">Maquinaria, Equipos e Insumos (Carga Formal - 5% Arancel)</option>
+      </select>
+    </div>
+    <div class="alerta-rubro" id="notaRubro"></div>
+
+    <div class="section-title">2. Costo del Producto y Flete</div>
+    <div class="grid">
+      <div>
+        <label>Costo unitario en China (USD)</label>
+        <input id="costoUnit" type="number" step="0.01" value="10" oninput="calcular()" />
+      </div>
+      <div>
+        <label>Cantidad de unidades</label>
+        <input id="cantidad" type="number" step="1" min="1" value="50" oninput="calcular()" />
+      </div>
+      <div>
+        <label>Flete internacional total (USD)</label>
+        <input id="fleteTotal" type="number" step="0.01" value="120" oninput="calcular()" />
+      </div>
+      <div>
+        <label>Seguro / Gestión / Entrega local (USD)</label>
+        <input id="seguroOtros" type="number" step="0.01" value="15" oninput="calcular()" />
+      </div>
+    </div>
+
+    <div class="section-title">3. Impuestos Aduaneros (Automático según rubro / Editable)</div>
+    <div class="grid">
+      <div>
+        <label>Arancel Ad-Valorem (%)</label>
+        <input id="arancelPct" type="number" step="0.1" value="20" oninput="calcular()" />
+      </div>
+      <div>
+        <label>Tasa Aduanera SENIAT (%)</label>
+        <input id="tasaPct" type="number" step="0.1" value="1" oninput="calcular()" />
+      </div>
+      <div>
+        <label>IVA Importación (%)</label>
+        <input id="ivaPct" type="number" step="0.1" value="16" oninput="calcular()" />
+      </div>
+    </div>
+
+    <div class="section-title">4. Ganancia y Tasa de Cambio</div>
+    <div class="grid">
+      <div>
+        <label>Margen de ganancia deseado (%)</label>
+        <input id="margenPct" type="number" step="1" value="50" oninput="calcular()" />
+      </div>
+      <div>
+        <label>Tasa de cambio (Bs / USD)</label>
+        <input id="tasaCambio" type="number" step="0.01" value="1" oninput="calcular()" />
+      </div>
+    </div>
+
+    <button onclick="calcular()">Recalcular Costos y Precio Final</button>
+
+    <div class="results">
+      <div class="row"><span>Mercancía (FOB / Producto):</span><strong id="resMercancia">$0.00</strong></div>
+      <div class="row"><span>Base CIF (Mercancía + Flete + Seguro):</span><strong id="resCif">$0.00</strong></div>
+      <div class="row"><span>Arancel + Tasa Aduanera:</span><strong id="resArancelTasa">$0.00</strong></div>
+      <div class="row"><span>IVA de Importación:</span><strong id="resIva">$0.00</strong></div>
+      <div class="row"><span>Total Impuestos Aduanales:</span><strong id="resImpuestos">$0.00</strong></div>
+      <div class="row"><span>Inversión Total Lote Puesto en Destino:</span><strong id="resTotalLote">$0.00</strong></div>
+      <div class="row"><span>Costo Unitario Real (Landed Cost):</span><strong id="resCostoUnit" class="ok">$0.00</strong></div>
+      <div class="row"><span>Precio de Venta Sugerido / Unidad:</span><strong id="resPrecioUnit" class="highlight">$0.00</strong></div>
+      <div class="row"><span>Ganancia Neta Estimada (Lote):</span><strong id="resGananciaLote" class="ok">$0.00</strong></div>
+      <div class="row"><span>Precio Unitario en Bolívares:</span><strong id="resPrecioBs">Bs. 0.00</strong></div>
+    </div>
+  </div>
+
+  <script>
+    const RUBROS = {
+      casillero: {
+        arancel: 0,
+        tasa: 0,
+        iva: 0,
+        nota: "Modalidad Courier / Casillero consolidado: el flete por libra o pie cúbico ya incluye la nacionalización global. Coloca el monto total del envío en 'Flete internacional total'."
+      },
+      textil: {
+        arancel: 20,
+        tasa: 1,
+        iva: 16,
+        nota: "Textiles y Ropa (Cap. 61-62): Arancel referencial del 20% sobre CIF + 1% Tasa Aduanera + 16% IVA. En importación formal requiere etiquetado y registro SENCAMER."
+      },
+      calzado: {
+        arancel: 20,
+        tasa: 1,
+        iva: 16,
+        nota: "Calzado (Cap. 64): Arancel referencial del 20% sobre CIF + 1% Tasa Aduanera + 16% IVA. En importación formal requiere registro SENCAMER y etiquetado."
+      },
+      electronica: {
+        arancel: 15,
+        tasa: 1,
+        iva: 16,
+        nota: "Electrónica y Celulares (Cap. 85): Arancel promedio 15% (algunos componentes pagan 5%-10% y equipos terminados 15%-20%) + 1% Tasa + 16% IVA. Equipos inalámbricos/celulares requieren homologación CONATEL."
+      },
+      relojes: {
+        arancel: 15,
+        tasa: 1,
+        iva: 16,
+        nota: "Relojes, Smartwatches y Bisutería (Cap. 71 / 91): Arancel promedio 15% sobre CIF + 1% Tasa Aduanera + 16% IVA."
+      },
+      juguetes: {
+        arancel: 15,
+        tasa: 1,
+        iva: 16,
+        nota: "Juguetes y Artículos del Hogar (Cap. 39 / 95): Arancel referencial 15%-20% sobre CIF + 1% Tasa Aduanera + 16% IVA."
+      },
+      cosmeticos: {
+        arancel: 20,
+        tasa: 1,
+        iva: 16,
+        nota: "Cosméticos y Perfumería (Cap. 33): Arancel referencial 20% sobre CIF + 1% Tasa + 16% IVA. Requiere Permiso Sanitario (Contraloría Sanitaria / MPPS) antes del embarque."
+      },
+      repuestos: {
+        arancel: 10,
+        tasa: 1,
+        iva: 16,
+        nota: "Repuestos y Ferretería (Cap. 73 / 84 / 87): Arancel promedio 10% (varía entre 5% y 15% según la pieza) + 1% Tasa Aduanera + 16% IVA."
+      },
+      maquinaria: {
+        arancel: 5,
+        tasa: 1,
+        iva: 16,
+        nota: "Maquinaria e Insumos Productivos (Cap. 84): Arancel preferencial 0% a 5% sobre CIF + 1% Tasa Aduanera + 16% IVA."
+      }
+    };
+
+    function aplicarRubro() {
+      const clave = document.getElementById("categoriaProducto").value;
+      const info = RUBROS[clave];
+      if (!info) return;
+      document.getElementById("arancelPct").value = info.arancel;
+      document.getElementById("tasaPct").value = info.tasa;
+      document.getElementById("ivaPct").value = info.iva;
+      document.getElementById("notaRubro").textContent = info.nota;
+      calcular();
+    }
+
+    function fmtUsd(v) {
+      return "$" + Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function fmtBs(v) {
+      return "Bs. " + Number(v || 0).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function calcular() {
+      const costoUnit = parseFloat(document.getElementById("costoUnit").value) || 0;
+      const cantidad = Math.max(1, parseFloat(document.getElementById("cantidad").value) || 1);
+      const fleteTotal = parseFloat(document.getElementById("fleteTotal").value) || 0;
+      const seguroOtros = parseFloat(document.getElementById("seguroOtros").value) || 0;
+
+      const arancelPct = (parseFloat(document.getElementById("arancelPct").value) || 0) / 100;
+      const tasaPct = (parseFloat(document.getElementById("tasaPct").value) || 0) / 100;
+      const ivaPct = (parseFloat(document.getElementById("ivaPct").value) || 0) / 100;
+
+      const margenPct = (parseFloat(document.getElementById("margenPct").value) || 0) / 100;
+      const tasaCambio = parseFloat(document.getElementById("tasaCambio").value) || 1;
+
+      const mercancia = costoUnit * cantidad;
+      const cif = mercancia + fleteTotal + seguroOtros;
+
+      const arancel = cif * arancelPct;
+      const tasa = cif * tasaPct;
+      const arancelMasTasa = arancel + tasa;
+      const baseIva = cif + arancelMasTasa;
+      const iva = baseIva * ivaPct;
+      const impuestos = arancelMasTasa + iva;
+
+      const totalLote = cif + impuestos;
+      const costoUnitReal = totalLote / cantidad;
+
+      const precioUnit = costoUnitReal * (1 + margenPct);
+      const gananciaLote = (precioUnit - costoUnitReal) * cantidad;
+      const precioBs = precioUnit * tasaCambio;
+
+      document.getElementById("resMercancia").textContent = fmtUsd(mercancia);
+      document.getElementById("resCif").textContent = fmtUsd(cif);
+      document.getElementById("resArancelTasa").textContent = fmtUsd(arancelMasTasa);
+      document.getElementById("resIva").textContent = fmtUsd(iva);
+      document.getElementById("resImpuestos").textContent = fmtUsd(impuestos);
+      document.getElementById("resTotalLote").textContent = fmtUsd(totalLote);
+      document.getElementById("resCostoUnit").textContent = fmtUsd(costoUnitReal);
+      document.getElementById("resPrecioUnit").textContent = fmtUsd(precioUnit);
+      document.getElementById("resGananciaLote").textContent = fmtUsd(gananciaLote);
+      document.getElementById("resPrecioBs").textContent = fmtBs(precioBs);
+    }
+
+    aplicarRubro();
+  </script>
+</body>
+                                                                        </html>
+                                                                        
